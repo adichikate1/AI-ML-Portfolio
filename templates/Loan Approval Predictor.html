@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Approval Predictor · Aditya</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --white: #fafaf8;
+      --muted: rgba(10,10,10,0.45);
+      --border: rgba(10,10,10,0.12);
+      --border-strong: rgba(10,10,10,0.22);
+      --hover-bg: rgba(10,10,10,0.03);
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--white);
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      cursor: none;
+    }
+
+    * { cursor: none !important; }
+    .cursor {
+      position: fixed; width: 8px; height: 8px;
+      background: var(--black); border-radius: 50%;
+      pointer-events: none; z-index: 99999;
+      transform: translate(-50%,-50%);
+      transition: width .18s ease, height .18s ease;
+    }
+    .cursor-ring {
+      position: fixed; width: 32px; height: 32px;
+      border: 1px solid rgba(10,10,10,0.4); border-radius: 50%;
+      pointer-events: none; z-index: 99998;
+      transform: translate(-50%,-50%);
+      transition: width .28s cubic-bezier(.25,.46,.45,.94), height .28s cubic-bezier(.25,.46,.45,.94);
+    }
+    .cursor.big { width: 16px; height: 16px; }
+    .cursor-ring.big { width: 52px; height: 52px; }
+
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-family: var(--serif); font-size: 18px; color: var(--black); text-decoration: none; }
+    .nav-back {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--black); opacity: 0.6;
+      text-decoration: none; transition: opacity 0.2s;
+    }
+    .nav-back:hover { opacity: 1; }
+    .arr { display: inline-block; transition: transform 0.25s ease; }
+    .nav-back:hover .arr { transform: translateX(-4px); }
+
+    /* ── HERO ── */
+    .hero {
+      border-bottom: 1px solid var(--border);
+      padding: 70px 60px 60px;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ''; position: absolute; inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 100% at 90% 50%, black 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 24px;
+    }
+    .hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--muted); flex-shrink: 0; }
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(54px, 8vw, 96px);
+      font-weight: 400; line-height: 1.0; letter-spacing: -1px; margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: italic; color: var(--muted); }
+    .hero-desc { font-size: 15px; color: var(--black); opacity: 0.7; max-width: 480px; line-height: 1.7; margin-bottom: 36px; }
+    .hero-meta { display: flex; flex-wrap: wrap; }
+    .meta-item { padding: 14px 28px 14px 0; margin-right: 28px; border-right: 1px solid var(--border); }
+    .meta-item:last-child { border-right: none; }
+    .meta-item .label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .meta-item .value { font-size: 14px; font-weight: 500; }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout { display: grid; grid-template-columns: 1fr 400px; min-height: calc(100vh - 60px); }
+
+    /* ── FORM PANEL ── */
+    .form-panel { border-right: 1px solid var(--border); padding: 60px 8%; }
+    .panel-title { font-family: var(--serif); font-size: 28px; font-weight: 400; margin-bottom: 32px; line-height: 1.2; }
+    .panel-title em { font-style: italic; color: var(--muted); }
+
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border); border-left: 1px solid var(--border);
+    }
+    .field-group {
+      border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+      padding: 24px 20px; transition: background 0.2s ease;
+    }
+    .field-group:hover { background: var(--hover-bg); }
+    .field-group.full-width { grid-column: 1 / -1; }
+
+    .field-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--black); margin-bottom: 14px;
+    }
+    .field-num { color: var(--muted); font-size: 9px; }
+
+    /* Range */
+    .range-wrap { display: flex; align-items: center; gap: 16px; }
+    .range-value { font-family: var(--serif); font-size: 20px; min-width: 52px; color: var(--black); }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 1px; background: var(--border-strong); outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--black); cursor: pointer; transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%; background: var(--black); border: none;
+    }
+
+    /* Number input */
+    input[type="number"] {
+      width: 100%; background: transparent; border: none;
+      border-bottom: 1px solid var(--border-strong);
+      color: var(--black); font-family: var(--serif);
+      font-size: 20px; padding: 4px 0 8px; outline: none; appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* Select */
+    .custom-select-wrap { position: relative; }
+    .custom-select-wrap::after {
+      content: '↓'; position: absolute; right: 0; top: 50%;
+      transform: translateY(-50%); color: var(--muted); font-size: 12px; pointer-events: none;
+    }
+    select {
+      width: 100%; background: transparent; border: none;
+      color: var(--black); font-family: var(--sans); font-size: 14px;
+      padding-right: 20px; outline: none; appearance: none; cursor: pointer;
+    }
+    select option { background: var(--white); color: var(--black); }
+
+    .field-hint { margin-top: 12px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* Toggle */
+    .toggle-group { display: flex; }
+    .toggle-btn {
+      flex: 1; padding: 9px 0; background: transparent;
+      border: 1px solid var(--border-strong); color: var(--black);
+      font-family: var(--sans); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; cursor: pointer; transition: all 0.2s ease;
+    }
+    .toggle-btn:first-child { border-radius: 2px 0 0 2px; }
+    .toggle-btn:last-child { border-radius: 0 2px 2px 0; border-left: none; }
+    .toggle-btn.active { background: var(--black); color: var(--white); }
+    .toggle-btn:hover:not(.active) { background: var(--hover-bg); }
+
+    /* Multi button group */
+    .multi-btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .multi-btn {
+      padding: 8px 14px; background: transparent;
+      border: 1px solid var(--border-strong); color: var(--black);
+      font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; border-radius: 2px;
+    }
+    .multi-btn.active { background: var(--black); color: var(--white); }
+    .multi-btn:hover:not(.active) { background: var(--hover-bg); }
+
+    /* Submit row */
+    .submit-row { display: flex; align-items: center; gap: 8px; padding: 32px 0 0; flex-wrap: wrap; }
+    .btn-predict {
+      padding: 12px 36px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      background: var(--black); color: var(--white);
+      border: 1px solid var(--black); cursor: pointer;
+      position: relative; overflow: hidden; transition: color 0.3s ease;
+    }
+    .btn-predict::before {
+      content: ''; position: absolute; inset: 0; background: var(--white);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
+    }
+    .btn-predict span { position: relative; z-index: 1; }
+    .btn-predict:hover { color: var(--black); }
+    .btn-predict:hover::before { transform: scaleX(1); }
+
+    .btn-reset {
+      padding: 12px 24px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 2px; text-transform: uppercase;
+      background: none; border: none; color: var(--muted); cursor: pointer; transition: color 0.2s;
+    }
+    .btn-reset:hover { color: var(--black); }
+
+    /* ── RESULT PANEL ── */
+    .result-panel {
+      padding: 60px 36px; position: sticky; top: 60px;
+      height: calc(100vh - 60px); overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .result-idle {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; gap: 16px;
+    }
+    .idle-icon { font-family: var(--serif); font-style: italic; font-size: 56px; color: var(--black); opacity: 0.08; line-height: 1.1; }
+    .idle-text { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); opacity: 0.6; line-height: 2; }
+
+    .result-card { display: none; }
+
+    .result-eyebrow {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 40px;
+    }
+    .result-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--muted); flex-shrink: 0; }
+
+    .verdict {
+      font-family: var(--serif); font-size: clamp(42px, 5vw, 58px);
+      font-weight: 400; line-height: 1.0; letter-spacing: -1px; margin-bottom: 8px;
+    }
+    .verdict-sub { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 36px; }
+
+    .result-divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border); border-left: 1px solid var(--border);
+    }
+    .stat-cell { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 14px 16px; }
+    .s-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .s-value { font-size: 14px; color: var(--black); }
+
+    /* ── STATS STRIP ── */
+    .stats-strip {
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 48px 60px; display: flex; gap: 0; flex-wrap: wrap;
+    }
+    .strip-item {
+      flex: 1; min-width: 140px; padding: 0 40px 0 0; margin-right: 40px;
+      border-right: 1px solid var(--border);
+    }
+    .strip-item:last-child { border-right: none; }
+    .strip-num { font-family: var(--serif); font-size: 36px; font-weight: 400; color: var(--black); line-height: 1; margin-bottom: 8px; }
+    .strip-label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: var(--black); padding: 22px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer p { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: white; opacity: 0.4; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 960px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .form-panel { border-right: none; padding: 40px 24px; }
+      .result-panel { position: static; height: auto; border-top: 1px solid var(--border); padding: 40px 24px; }
+      .result-idle { padding: 40px 0; }
+    }
+    @media (max-width: 640px) {
+      .navbar { padding: 0 20px; }
+      .hero { padding: 48px 24px 40px; }
+      .form-panel { padding: 32px 20px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field-group { border-right: none !important; }
+      .field-group.full-width { grid-column: 1; }
+      .stats-strip { padding: 32px 20px; gap: 24px; }
+      .strip-item { border-right: none; margin-right: 0; padding-right: 0; min-width: 45%; }
+      .footer { padding: 18px 20px; flex-direction: column; gap: 6px; }
+      .result-panel { padding: 32px 20px; }
+    }
+    @media (max-width: 420px) {
+      .hero h1 { font-size: 44px; }
+      .btn-predict { width: 100%; }
+      .btn-reset { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="index.html">Aditya</a>
+    <a class="nav-back" href="index.html#projects"><span class="arr">&#8592;</span> Back to Projects</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">ML Project · Loan Approval Predictor</div>
+    <h1>Loan Approval<br><em>Predictor</em></h1>
+    <p class="hero-desc">A decision tree model trained on real loan application data. Enter applicant details to estimate approval probability based on financial patterns and credit history.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><p class="label">Model</p><p class="value">Decision Tree</p></div>
+      <div class="meta-item"><p class="label">Dataset</p><p class="value">Loan Data CSV</p></div>
+      <div class="meta-item"><p class="label">Accuracy</p><p class="value">~78%</p></div>
+      <div class="meta-item"><p class="label">Features</p><p class="value">13 Inputs</p></div>
+    </div>
+  </section>
+
+  {# Hidden fields updated by JS toggle/multi buttons #}
+  <form class="main-layout" method="post">
+
+    <input type="hidden" name="person_gender"              id="genderInput"  value="male">
+    <input type="hidden" name="person_home_ownership"      id="homeInput"    value="RENT">
+    <input type="hidden" name="previous_loan_defaults_on_file" id="defaultInput" value="No">
+
+    <div class="form-panel">
+      <p class="panel-title">Enter <em>Applicant Details</em></p>
+
+      <div class="form-grid">
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">01 &nbsp;</span>Age</div>
+          <div class="range-wrap">
+            <span class="range-value" id="ageDisplay">28</span>
+            <input type="range" name="person_age" id="age" min="18" max="75" value="28" step="1"
+              oninput="document.getElementById('ageDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">18 – 75 years</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">02 &nbsp;</span>Gender</div>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn active" id="btn-male"   onclick="setGender('male')">Male</button>
+            <button type="button" class="toggle-btn"        id="btn-female" onclick="setGender('female')">Female</button>
+          </div>
+          <p class="field-hint">As per application record</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">03 &nbsp;</span>Education</div>
+          <div class="custom-select-wrap">
+            <select name="person_education" id="education">
+              <option value="High School">High School</option>
+              <option value="Associate">Associate</option>
+              <option value="Bachelor" selected>Bachelor</option>
+              <option value="Master">Master</option>
+              <option value="Doctorate">Doctorate</option>
+            </select>
+          </div>
+          <p class="field-hint">Highest qualification attained</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">04 &nbsp;</span>Annual Income ($)</div>
+          <input type="number" name="person_income" id="income" value="55000" min="5000" max="500000" placeholder="55000">
+          <p class="field-hint">Gross annual income in USD</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">05 &nbsp;</span>Employment Exp.</div>
+          <div class="range-wrap">
+            <span class="range-value" id="empDisplay">3</span>
+            <input type="range" name="person_emp_exp" id="emp_exp" min="0" max="40" value="3" step="1"
+              oninput="document.getElementById('empDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">Years of work experience</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">06 &nbsp;</span>Home Ownership</div>
+          <div class="multi-btn-group">
+            <button type="button" class="multi-btn active" id="btn-RENT"     onclick="setHome('RENT')">Rent</button>
+            <button type="button" class="multi-btn"        id="btn-OWN"      onclick="setHome('OWN')">Own</button>
+            <button type="button" class="multi-btn"        id="btn-MORTGAGE" onclick="setHome('MORTGAGE')">Mortgage</button>
+            <button type="button" class="multi-btn"        id="btn-OTHER"    onclick="setHome('OTHER')">Other</button>
+          </div>
+          <p class="field-hint">Current housing situation</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">07 &nbsp;</span>Loan Amount ($)</div>
+          <input type="number" name="loan_amnt" id="loan_amnt" value="10000" min="500" max="100000" placeholder="10000">
+          <p class="field-hint">Requested loan amount in USD</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">08 &nbsp;</span>Loan Intent</div>
+          <div class="custom-select-wrap">
+            <select name="loan_intent" id="loan_intent">
+              <option value="PERSONAL">Personal</option>
+              <option value="EDUCATION" selected>Education</option>
+              <option value="MEDICAL">Medical</option>
+              <option value="VENTURE">Venture</option>
+              <option value="HOMEIMPROVEMENT">Home Improvement</option>
+              <option value="DEBTCONSOLIDATION">Debt Consolidation</option>
+            </select>
+          </div>
+          <p class="field-hint">Purpose for the loan</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">09 &nbsp;</span>Interest Rate (%)</div>
+          <div class="range-wrap">
+            <span class="range-value" id="intRateDisplay">11.5</span>
+            <input type="range" name="loan_int_rate" id="loan_int_rate" min="5" max="25" step="0.1" value="11.5"
+              oninput="document.getElementById('intRateDisplay').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <p class="field-hint">Annual interest rate (5% – 25%)</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">10 &nbsp;</span>Loan % of Income</div>
+          <div class="range-wrap">
+            <span class="range-value" id="lpiDisplay">0.20</span>
+            <input type="range" name="loan_percent_income" id="loan_percent_income" min="0.01" max="0.99" step="0.01" value="0.20"
+              oninput="document.getElementById('lpiDisplay').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+          <p class="field-hint">Loan-to-income ratio</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">11 &nbsp;</span>Credit History (yrs)</div>
+          <div class="range-wrap">
+            <span class="range-value" id="credHistDisplay">4</span>
+            <input type="range" name="cb_person_cred_hist_length" id="cred_hist" min="1" max="30" value="4" step="1"
+              oninput="document.getElementById('credHistDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">Length of credit history</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">12 &nbsp;</span>Credit Score</div>
+          <div class="range-wrap">
+            <span class="range-value" id="creditScoreDisplay">650</span>
+            <input type="range" name="credit_score" id="credit_score" min="300" max="850" value="650" step="1"
+              oninput="document.getElementById('creditScoreDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">FICO score (300 – 850)</p>
+        </div>
+
+        <div class="field-group full-width">
+          <div class="field-label"><span class="field-num">13 &nbsp;</span>Previous Loan Defaults</div>
+          <div class="toggle-group" style="max-width:320px">
+            <button type="button" class="toggle-btn active" id="btn-no-default"  onclick="setDefault('No')">No Defaults</button>
+            <button type="button" class="toggle-btn"        id="btn-yes-default" onclick="setDefault('Yes')">Has Defaults</button>
+          </div>
+          <p class="field-hint">Any previous loan defaults on file</p>
+        </div>
+
+      </div>
+
+      <div class="submit-row">
+        <button class="btn-predict" type="submit"><span>Predict Approval</span></button>
+        <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+      </div>
+
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="result-panel">
+
+      <div class="result-idle" id="resultIdle">
+        <div class="idle-icon">Loan<br>Decision</div>
+        <p class="idle-text">Fill in applicant details<br>and press Predict Approval</p>
+      </div>
+
+      <div class="result-card" id="resultCard">
+        <div class="result-eyebrow">Prediction Result</div>
+
+        <div class="verdict">
+          {% if approved == 1 %}Approved
+          {% elif approved == 0 %}Rejected
+          {% endif %}
+        </div>
+        <div class="verdict-sub">
+          {% if approved == 1 %}Loan likely approved
+          {% elif approved == 0 %}Loan likely declined
+          {% endif %}
+        </div>
+
+        <div class="result-divider"></div>
+
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <p class="s-label">Credit Score</p>
+            <p class="s-value">{{ request.form.get('credit_score', '—') }}</p>
+          </div>
+          <div class="stat-cell">
+            <p class="s-label">Annual Income</p>
+            <p class="s-value">${{ "{:,}".format(request.form.get('person_income', 0) | int) if request.form.get('person_income') else '—' }}</p>
+          </div>
+          <div class="stat-cell">
+            <p class="s-label">Loan Amount</p>
+            <p class="s-value">${{ "{:,}".format(request.form.get('loan_amnt', 0) | int) if request.form.get('loan_amnt') else '—' }}</p>
+          </div>
+          <div class="stat-cell">
+            <p class="s-label">Loan Intent</p>
+            <p class="s-value">
+              {% set intent_map = {
+                'PERSONAL': 'Personal',
+                'EDUCATION': 'Education',
+                'MEDICAL': 'Medical',
+                'VENTURE': 'Venture',
+                'HOMEIMPROVEMENT': 'Home Impr.',
+                'DEBTCONSOLIDATION': 'Debt Consol.'
+              } %}
+              {{ intent_map.get(request.form.get('loan_intent', ''), '—') }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </form>
+
+  <!-- STATS STRIP -->
+  <div class="stats-strip">
+    <div class="strip-item"><div class="strip-num">13</div><div class="strip-label">Input Features</div></div>
+    <div class="strip-item"><div class="strip-num">~78%</div><div class="strip-label">Model Accuracy</div></div>
+    <div class="strip-item"><div class="strip-num">6</div><div class="strip-label">Loan Intent Types</div></div>
+    <div class="strip-item"><div class="strip-num">300–850</div><div class="strip-label">Credit Score Range</div></div>
+    <div class="strip-item"><div class="strip-num">Decision<br>Tree</div><div class="strip-label">Algorithm Used</div></div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2026 Aditya</p>
+    <p>Loan Approval ML Predictor</p>
+  </footer>
+
+  <script>
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+    });
+    (function loop() {
+      rx += (mx - rx) * 0.1; ry += (my - ry) * 0.1;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, button, .card, .skills span').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.classList.add('big'); ring.classList.add('big'); });
+      el.addEventListener('mouseleave', () => { cursor.classList.remove('big'); ring.classList.remove('big'); });
+    });
+
+    function setGender(val) {
+      document.getElementById('genderInput').value = val;
+      document.getElementById('btn-male').classList.toggle('active', val === 'male');
+      document.getElementById('btn-female').classList.toggle('active', val === 'female');
+    }
+
+    const homeOptions = ['RENT','OWN','MORTGAGE','OTHER'];
+    function setHome(val) {
+      document.getElementById('homeInput').value = val;
+      homeOptions.forEach(o => document.getElementById('btn-' + o).classList.toggle('active', o === val));
+    }
+
+    function setDefault(val) {
+      document.getElementById('defaultInput').value = val;
+      document.getElementById('btn-no-default').classList.toggle('active', val === 'No');
+      document.getElementById('btn-yes-default').classList.toggle('active', val === 'Yes');
+    }
+
+    function resetForm() {
+      document.getElementById('age').value = 28; document.getElementById('ageDisplay').textContent = 28;
+      setGender('male');
+      document.getElementById('education').value = 'Bachelor';
+      document.getElementById('income').value = 55000;
+      document.getElementById('emp_exp').value = 3; document.getElementById('empDisplay').textContent = 3;
+      setHome('RENT');
+      document.getElementById('loan_amnt').value = 10000;
+      document.getElementById('loan_intent').value = 'EDUCATION';
+      document.getElementById('loan_int_rate').value = 11.5; document.getElementById('intRateDisplay').textContent = '11.5';
+      document.getElementById('loan_percent_income').value = 0.20; document.getElementById('lpiDisplay').textContent = '0.20';
+      document.getElementById('cred_hist').value = 4; document.getElementById('credHistDisplay').textContent = 4;
+      document.getElementById('credit_score').value = 650; document.getElementById('creditScoreDisplay').textContent = 650;
+      setDefault('No');
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('resultIdle').style.display = 'flex';
+    }
+
+    {% if approved is not none %}
+      document.getElementById('resultCard').style.display = 'block';
+      document.getElementById('resultIdle').style.display = 'none';
+    {% else %}
+      document.getElementById('resultCard').style.display = 'none';
+    {% endif %}
+  </script>
+
+</body>
+</html>

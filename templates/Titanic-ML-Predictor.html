@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Titanic Predictor · Aditya</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --white: #fafaf8;
+      --muted: rgba(10,10,10,0.45);
+      --border: rgba(10,10,10,0.12);
+      --border-strong: rgba(10,10,10,0.22);
+      --hover-bg: rgba(10,10,10,0.03);
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--white);
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      cursor: none;
+    }
+
+    * { cursor: none !important; }
+    .cursor {
+      position: fixed; width: 8px; height: 8px;
+      background: var(--black); border-radius: 50%;
+      pointer-events: none; z-index: 99999;
+      transform: translate(-50%,-50%);
+      transition: width .18s ease, height .18s ease;
+    }
+    .cursor-ring {
+      position: fixed; width: 32px; height: 32px;
+      border: 1px solid rgba(10,10,10,0.4); border-radius: 50%;
+      pointer-events: none; z-index: 99998;
+      transform: translate(-50%,-50%);
+      transition: width .28s cubic-bezier(.25,.46,.45,.94), height .28s cubic-bezier(.25,.46,.45,.94);
+    }
+    .cursor.big { width: 16px; height: 16px; }
+    .cursor-ring.big { width: 52px; height: 52px; }
+
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-family: var(--serif); font-size: 18px; color: var(--black); text-decoration: none; }
+    .nav-back {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--black); opacity: 0.6;
+      text-decoration: none; transition: opacity 0.2s;
+    }
+    .nav-back:hover { opacity: 1; }
+    .arr { display: inline-block; transition: transform 0.25s ease; }
+    .nav-back:hover .arr { transform: translateX(-4px); }
+
+    .hero {
+      border-bottom: 1px solid var(--border);
+      padding: 70px 60px 60px;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ''; position: absolute; inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 100% at 90% 50%, black 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 24px;
+    }
+    .hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--muted); flex-shrink: 0; }
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(54px, 8vw, 96px);
+      font-weight: 400; line-height: 1.0; letter-spacing: -1px; margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: italic; color: var(--muted); }
+    .hero-desc { font-size: 15px; color: var(--black); opacity: 0.7; max-width: 480px; line-height: 1.7; margin-bottom: 36px; }
+    .hero-meta { display: flex; flex-wrap: wrap; }
+    .meta-item { padding: 14px 28px 14px 0; margin-right: 28px; border-right: 1px solid var(--border); }
+    .meta-item:last-child { border-right: none; }
+    .meta-item .label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .meta-item .value { font-size: 14px; font-weight: 500; }
+
+    .main-layout { display: grid; grid-template-columns: 1fr 400px; min-height: calc(100vh - 60px); }
+
+    .form-panel { border-right: 1px solid var(--border); padding: 60px 8%; }
+    .panel-title { font-family: var(--serif); font-size: 28px; font-weight: 400; margin-bottom: 32px; line-height: 1.2; }
+    .panel-title em { font-style: italic; color: var(--muted); }
+
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border); border-left: 1px solid var(--border);
+    }
+    .field-group {
+      border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+      padding: 24px 20px; transition: background 0.2s ease;
+    }
+    .field-group:hover { background: var(--hover-bg); }
+    .field-group.full-width { grid-column: 1 / -1; }
+
+    .field-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--black); margin-bottom: 14px;
+    }
+    .field-num { color: var(--muted); font-size: 9px; }
+
+    .range-wrap { display: flex; align-items: center; gap: 16px; }
+    .range-value { font-family: var(--serif); font-size: 20px; min-width: 40px; color: var(--black); }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 1px; background: var(--border-strong); outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--black); cursor: pointer; transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%; background: var(--black); border: none;
+    }
+
+    input[type="number"] {
+      width: 100%; background: transparent; border: none;
+      border-bottom: 1px solid var(--border-strong);
+      color: var(--black); font-family: var(--serif);
+      font-size: 20px; padding: 4px 0 8px; outline: none; appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .custom-select-wrap { position: relative; }
+    .custom-select-wrap::after {
+      content: '↓'; position: absolute; right: 0; top: 50%;
+      transform: translateY(-50%); color: var(--muted); font-size: 12px; pointer-events: none;
+    }
+    select {
+      width: 100%; background: transparent; border: none;
+      color: var(--black); font-family: var(--sans); font-size: 14px;
+      padding-right: 20px; outline: none; appearance: none; cursor: pointer;
+    }
+    select option { background: var(--white); color: var(--black); }
+
+    .field-hint { margin-top: 12px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    .toggle-group { display: flex; }
+    .toggle-btn {
+      flex: 1; padding: 9px 0; background: transparent;
+      border: 1px solid var(--border-strong); color: var(--black);
+      font-family: var(--sans); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; cursor: pointer; transition: all 0.2s ease;
+    }
+    .toggle-btn:first-child { border-radius: 2px 0 0 2px; }
+    .toggle-btn:last-child { border-radius: 0 2px 2px 0; border-left: none; }
+    .toggle-btn.active { background: var(--black); color: var(--white); }
+    .toggle-btn:hover:not(.active) { background: var(--hover-bg); }
+
+    .title-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .title-btn {
+      padding: 8px 16px; background: transparent;
+      border: 1px solid var(--border-strong); color: var(--black);
+      font-family: var(--sans); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; border-radius: 2px;
+    }
+    .title-btn.active { background: var(--black); color: var(--white); }
+    .title-btn:hover:not(.active) { background: var(--hover-bg); }
+
+    .submit-row { display: flex; align-items: center; gap: 8px; padding: 32px 0 0; flex-wrap: wrap; }
+
+    .btn-predict {
+      padding: 12px 36px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      background: var(--black); color: var(--white);
+      border: 1px solid var(--black); cursor: pointer;
+      position: relative; overflow: hidden; transition: color 0.3s ease;
+    }
+    .btn-predict::before {
+      content: ''; position: absolute; inset: 0; background: var(--white);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
+    }
+    .btn-predict span { position: relative; z-index: 1; }
+    .btn-predict:hover { color: var(--black); }
+    .btn-predict:hover::before { transform: scaleX(1); }
+
+    .btn-reset {
+      padding: 12px 24px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 2px; text-transform: uppercase;
+      background: none; border: none; color: var(--muted); cursor: pointer; transition: color 0.2s;
+    }
+    .btn-reset:hover { color: var(--black); }
+
+    /* RESULT PANEL */
+    .result-panel {
+      padding: 60px 36px; position: sticky; top: 60px;
+      height: calc(100vh - 60px); overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .result-idle {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; gap: 16px;
+    }
+    .ship-icon { font-family: var(--serif); font-style: italic; font-size: 56px; color: var(--black); opacity: 0.08; line-height: 1.1; }
+    .idle-text { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); opacity: 0.6; line-height: 2; }
+
+    .result-card { display: none; }
+
+    .result-eyebrow {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 40px;
+    }
+    .result-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--muted); flex-shrink: 0; }
+
+    .verdict {
+      font-family: var(--serif); font-size: clamp(38px, 5vw, 52px);
+      font-weight: 400; line-height: 1.0; letter-spacing: -1px; margin-bottom: 8px;
+    }
+    .verdict-sub { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 36px; }
+
+    .prob-section { margin-bottom: 36px; }
+    .prob-label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    }
+    .prob-num { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--black); }
+    .prob-bar-track { height: 1.5px; background: var(--border); }
+    .prob-bar-fill { height: 100%; background: var(--black); transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+
+    .result-divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border); border-left: 1px solid var(--border);
+    }
+    .stat-cell { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 14px 16px; }
+    .s-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .s-value { font-size: 14px; color: var(--black); }
+
+    .footer {
+      background: var(--black); padding: 22px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer p { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: white; opacity: 0.4; }
+
+    /* RESPONSIVE */
+    @media (max-width: 960px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .form-panel { border-right: none; padding: 40px 24px; }
+      .result-panel { position: static; height: auto; border-top: 1px solid var(--border); padding: 40px 24px; }
+      .result-idle { padding: 40px 0; }
+    }
+    @media (max-width: 640px) {
+      .navbar { padding: 0 20px; }
+      .hero { padding: 48px 24px 40px; }
+      .form-panel { padding: 32px 20px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field-group { border-right: none !important; }
+      .field-group.full-width { grid-column: 1; }
+      .footer { padding: 18px 20px; flex-direction: column; gap: 6px; }
+      .result-panel { padding: 32px 20px; }
+    }
+    @media (max-width: 420px) {
+      .hero h1 { font-size: 44px; }
+      .btn-predict { width: 100%; }
+      .btn-reset { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="index.html">Aditya</a>
+    <a class="nav-back" href="index.html#projects"><span class="arr">&#8592;</span> Back to Projects</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">ML Project · Titanic Predictor</div>
+    <h1>Titanic<br><em>Predictor</em></h1>
+    <p class="hero-desc">A logistic regression model trained on the Titanic passenger dataset. Enter passenger details to estimate survival probability based on real historical patterns.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><p class="label">Model</p><p class="value">Logistic Regression</p></div>
+      <div class="meta-item"><p class="label">Dataset</p><p class="value">Kaggle Titanic</p></div>
+      <div class="meta-item"><p class="label">Accuracy</p><p class="value">~82%</p></div>
+      <div class="meta-item"><p class="label">Features</p><p class="value">07 Inputs</p></div>
+    </div>
+  </section>
+
+  {# ─── NOTE: Title is visual-only (not sent to model). Only pclass/sex/age/sibsp/parch/fare are used. ─── #}
+  <form class="main-layout" method="post" action="/Titanic_ML_Predictor">
+
+    {# Hidden fields updated by JS toggle buttons #}
+    <input type="hidden" name="sex"   id="sexInput"   value="0">
+    <input type="hidden" name="title" id="titleInput" value="0">
+
+    <div class="form-panel">
+      <p class="panel-title">Enter <em>Passenger Details</em></p>
+
+      <div class="form-grid">
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">01 &nbsp;</span>Passenger Class</div>
+          <div class="custom-select-wrap">
+            <select name="pclass" id="pclass">
+              <option value="1">1st Class</option>
+              <option value="2">2nd Class</option>
+              <option value="3" selected>3rd Class</option>
+            </select>
+          </div>
+          <p class="field-hint">Higher class → higher survival rate</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">02 &nbsp;</span>Sex</div>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn active" id="btn-male"   onclick="setSex(0)">Male</button>
+            <button type="button" class="toggle-btn"        id="btn-female" onclick="setSex(1)">Female</button>
+          </div>
+          <p class="field-hint">0 = Male · 1 = Female</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">03 &nbsp;</span>Age</div>
+          <div class="range-wrap">
+            <span class="range-value" id="ageDisplay">29</span>
+            <input type="range" name="age" id="age" min="1" max="70" value="29" step="1"
+              oninput="document.getElementById('ageDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">1 – 70 years</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">04 &nbsp;</span>Siblings / Spouses</div>
+          <input type="number" name="sibsp" id="sibsp" value="0" min="0" max="5" placeholder="0">
+          <p class="field-hint">Aboard (max 5)</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">05 &nbsp;</span>Parents / Children</div>
+          <input type="number" name="parch" id="parch" value="0" min="0" max="5" placeholder="0">
+          <p class="field-hint">Aboard (max 5)</p>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label"><span class="field-num">06 &nbsp;</span>Fare (£)</div>
+          <div class="range-wrap">
+            <span class="range-value" id="fareDisplay">32</span>
+            <input type="range" name="fare" id="fare" min="1" max="520" value="32" step="1"
+              oninput="document.getElementById('fareDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">£1 – £520</p>
+        </div>
+
+        <div class="field-group full-width">
+          <div class="field-label"><span class="field-num">07 &nbsp;</span>Title</div>
+          <div class="title-group">
+            <button type="button" class="title-btn active" id="btn-Mr"     onclick="setTitle(0,'Mr')">Mr</button>
+            <button type="button" class="title-btn"        id="btn-Miss"   onclick="setTitle(1,'Miss')">Miss</button>
+            <button type="button" class="title-btn"        id="btn-Mrs"    onclick="setTitle(2,'Mrs')">Mrs</button>
+            <button type="button" class="title-btn"        id="btn-Master" onclick="setTitle(3,'Master')">Master</button>
+            <button type="button" class="title-btn"        id="btn-Other"  onclick="setTitle(4,'Other')">Other</button>
+          </div>
+          <p class="field-hint">Social title as listed on the passenger manifest</p>
+        </div>
+
+      </div>
+
+      <div class="submit-row">
+        <button class="btn-predict" type="submit"><span>Predict Survival</span></button>
+        <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+      </div>
+
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="result-panel">
+
+      <div class="result-idle" id="resultIdle">
+        <div class="ship-icon">RMS<br>Titanic</div>
+        <p class="idle-text">Fill in passenger details<br>and press Predict Survival</p>
+      </div>
+
+      <div class="result-card" id="resultCard">
+        <div class="result-eyebrow">Prediction Result</div>
+
+        <div class="verdict" id="verdictText">
+          {% if survived == 1 %}Survived{% elif survived == 0 %}Did Not<br>Survive{% endif %}
+        </div>
+        <div class="verdict-sub" id="verdictSub">
+          {% if survived == 1 %}Passenger likely survived
+          {% elif survived == 0 %}Passenger unlikely survived
+          {% endif %}
+        </div>
+
+        <div class="prob-section">
+          <div class="prob-label">
+            <span>Survival Probability</span>
+            <span class="prob-num">{% if probability is not none %}{{ probability }}%{% else %}0%{% endif %}</span>
+          </div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill" id="probBar"
+              style="width: {% if probability is not none %}{{ probability }}{% else %}0{% endif %}%">
+            </div>
+          </div>
+        </div>
+
+        <div class="result-divider"></div>
+
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <p class="s-label">Class</p>
+            <p class="s-value">{{ request.form.get('pclass', '—') | replace('1','1st') | replace('2','2nd') | replace('3','3rd') }}</p>
+          </div>
+          <div class="stat-cell">
+            <p class="s-label">Sex</p>
+            <p class="s-value">{{ 'Male' if request.form.get('sex') == '0' else 'Female' }}</p>
+          </div>
+          <div class="stat-cell">
+            <p class="s-label">Age</p>
+            <p class="s-value">{{ request.form.get('age', '—') }} yrs</p>
+          </div>
+          <div class="stat-cell">
+            <p class="s-label">Fare</p>
+            <p class="s-value">£{{ request.form.get('fare', '—') }}</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </form>
+
+  <footer class="footer">
+    <p>© 2026 Aditya</p>
+    <p>Titanic ML Predictor</p>
+  </footer>
+
+  <script>
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+    });
+    (function loop() {
+      rx += (mx - rx) * 0.1; ry += (my - ry) * 0.1;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, button, .card, .skills span').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.classList.add('big'); ring.classList.add('big'); });
+      el.addEventListener('mouseleave', () => { cursor.classList.remove('big'); ring.classList.remove('big'); });
+    });
+
+
+    function setSex(val) {
+      document.getElementById('sexInput').value = val;
+      document.getElementById('btn-male').classList.toggle('active', val === 0);
+      document.getElementById('btn-female').classList.toggle('active', val === 1);
+    }
+
+    function setTitle(val, label) {
+      document.getElementById('titleInput').value = val;
+      ['Mr','Miss','Mrs','Master','Other'].forEach(t =>
+        document.getElementById('btn-' + t).classList.remove('active')
+      );
+      document.getElementById('btn-' + label).classList.add('active');
+    }
+
+    function resetForm() {
+      document.getElementById('pclass').value = '3';
+      setSex(0);
+      document.getElementById('age').value = 29;
+      document.getElementById('ageDisplay').textContent = 29;
+      document.getElementById('sibsp').value = 0;
+      document.getElementById('parch').value = 0;
+      document.getElementById('fare').value = 32;
+      document.getElementById('fareDisplay').textContent = 32;
+      setTitle(0, 'Mr');
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('resultIdle').style.display = 'flex';
+    }
+
+    {% if survived is not none %}
+      document.getElementById('resultCard').style.display = 'block';
+      document.getElementById('resultIdle').style.display = 'none';
+    {% else %}
+      document.getElementById('resultCard').style.display = 'none';
+    {% endif %}
+  </script>
+
+</body>
+</html>
