@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Segmentation · Aditya</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --white: #fafaf8;
+      --muted: rgba(10,10,10,0.45);
+      --border: rgba(10,10,10,0.12);
+      --border-strong: rgba(10,10,10,0.22);
+      --hover-bg: rgba(10,10,10,0.03);
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--white);
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      cursor: none;
+    }
+    * { cursor: none !important; }
+
+    .cursor {
+      position: fixed; width: 8px; height: 8px;
+      background: var(--black); border-radius: 50%;
+      pointer-events: none; z-index: 99999;
+      transform: translate(-50%,-50%);
+      transition: width .18s ease, height .18s ease;
+    }
+    .cursor-ring {
+      position: fixed; width: 32px; height: 32px;
+      border: 1px solid rgba(10,10,10,0.4); border-radius: 50%;
+      pointer-events: none; z-index: 99998;
+      transform: translate(-50%,-50%);
+      transition: width .28s cubic-bezier(.25,.46,.45,.94), height .28s cubic-bezier(.25,.46,.45,.94);
+    }
+    .cursor.big { width: 16px; height: 16px; }
+    .cursor-ring.big { width: 52px; height: 52px; }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      font-family: var(--serif); font-size: 18px;
+      color: var(--black); text-decoration: none; letter-spacing: 0.5px;
+    }
+    .nav-back {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--black); opacity: 0.6;
+      text-decoration: none; transition: opacity 0.2s; letter-spacing: 0.3px;
+    }
+    .nav-back:hover { opacity: 1; }
+    .arr { display: inline-block; transition: transform 0.25s ease; }
+    .nav-back:hover .arr { transform: translateX(-4px); }
+
+    /* ── HERO ── */
+    .hero {
+      border-bottom: 1px solid var(--border);
+      padding: 70px 60px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 100% at 90% 50%, black 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 24px;
+    }
+    .hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--muted); flex-shrink: 0; }
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(54px, 8vw, 96px);
+      font-weight: 400; line-height: 1.0; letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: italic; color: var(--muted); }
+    .hero-desc {
+      font-size: 15px; color: var(--black); opacity: 0.7;
+      max-width: 480px; line-height: 1.7; margin-bottom: 36px;
+    }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 0; }
+    .meta-item { padding: 14px 28px 14px 0; margin-right: 28px; border-right: 1px solid var(--border); }
+    .meta-item:last-child { border-right: none; }
+    .meta-item .label {
+      font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 4px;
+    }
+    .meta-item .value { font-size: 14px; font-weight: 500; color: var(--black); }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 460px;
+      min-height: calc(100vh - 60px);
+    }
+
+    /* ── PLOT PANEL ── */
+    .plot-panel {
+      border-right: 1px solid var(--border);
+      padding: 60px 8%;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-title {
+      font-family: var(--serif); font-size: 28px; font-weight: 400;
+      margin-bottom: 8px; line-height: 1.2;
+    }
+    .panel-title em { font-style: italic; color: var(--muted); }
+    .panel-sub {
+      font-size: 12px; color: var(--muted); margin-bottom: 32px; max-width: 440px;
+    }
+
+    .plot-frame {
+      border: 1px solid var(--border);
+      position: relative;
+      min-height: 560px;
+      overflow: hidden;
+    }
+    .plot-frame .js-plotly-plot,
+    .plot-frame .plotly-graph-div {
+      width: 100% !important;
+    }
+
+    .axis-key {
+      display: flex; justify-content: space-between;
+      margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border);
+    }
+    .axis-key-item { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+    .axis-key-item b { color: var(--black); font-weight: 500; }
+
+    /* ── CONTROL PANEL ── */
+    .control-panel {
+      padding: 60px 36px;
+      position: sticky; top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .control-title {
+      font-family: var(--serif); font-size: 22px; margin-bottom: 28px;
+    }
+    .control-title em { font-style: italic; color: var(--muted); }
+
+    .field-block { margin-bottom: 30px; }
+    .field-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--black); margin-bottom: 14px;
+    }
+    .range-wrap { display: flex; align-items: center; gap: 16px; }
+    .range-value {
+      font-family: var(--serif); font-size: 22px; font-weight: 400;
+      min-width: 46px; color: var(--black);
+    }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 1px; background: var(--border-strong);
+      outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--black); cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--black); border: none; cursor: pointer;
+    }
+    .field-hint { margin-top: 12px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    .divider { height: 1px; background: var(--border); margin: 8px 0 30px; }
+
+    .readout {
+      border: 1px solid var(--border);
+      padding: 22px;
+      margin-bottom: 28px;
+    }
+    .readout-label {
+      font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px;
+    }
+    .readout-seg {
+      font-family: var(--serif); font-size: 24px; margin-bottom: 4px;
+    }
+    .readout-desc { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+    .btn-row { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 20px; }
+    .btn-plot {
+      padding: 12px 36px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      background: var(--black); color: var(--white);
+      border: 1px solid var(--black); cursor: pointer;
+      position: relative; overflow: hidden; transition: color 0.3s ease;
+    }
+    .btn-plot::before {
+      content: ''; position: absolute; inset: 0; background: var(--white);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
+    }
+    .btn-plot span { position: relative; z-index: 1; }
+    .btn-plot:hover { color: var(--black); }
+    .btn-plot:hover::before { transform: scaleX(1); }
+
+    .btn-reset {
+      padding: 12px 20px; font-family: var(--sans); font-size: 10px;
+      letter-spacing: 2px; text-transform: uppercase;
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; transition: color 0.2s;
+      text-decoration: none;
+      display: inline-flex; align-items: center;
+    }
+    .btn-reset:hover { color: var(--black); }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: var(--black); padding: 22px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer p { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: white; opacity: 0.4; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 960px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .plot-panel { border-right: none; padding: 40px 24px; }
+      .control-panel { position: static; height: auto; border-top: 1px solid var(--border); padding: 40px 24px; }
+    }
+    @media (max-width: 640px) {
+      .navbar { padding: 0 20px; }
+      .hero { padding: 48px 24px 40px; }
+      .meta-item { padding: 10px 16px 10px 0; margin-right: 16px; }
+      .plot-panel { padding: 32px 20px; }
+      .control-panel { padding: 32px 20px; }
+      .footer { padding: 18px 20px; flex-direction: column; gap: 6px; text-align: center; }
+    }
+    @media (max-width: 420px) {
+      .hero h1 { font-size: 44px; }
+      .btn-plot { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/">Aditya</a>
+    <a class="nav-back" href="/"><span class="arr">&#8592;</span> Back to Projects</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">ML Project · Customer Segmentation</div>
+    <h1>Customer<br><em>Segments</em></h1>
+    <p class="hero-desc">A K-Means clustering model trained on mall customer data, with cluster count chosen automatically via the elbow method. Place a customer by age, income, and spending score to see which segment they fall into.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><p class="label">Model</p><p class="value">K-Means Clustering</p></div>
+      <div class="meta-item"><p class="label">Dataset</p><p class="value">Mall Customers</p></div>
+      <div class="meta-item"><p class="label">Segments</p><p class="value">{{ num_clusters }} Clusters</p></div>
+      <div class="meta-item"><p class="label">Features</p><p class="value">3 Inputs</p></div>
+    </div>
+  </section>
+
+  <div class="main-layout">
+
+    <!-- PLOT PANEL -->
+    <div class="plot-panel">
+      <p class="panel-title">Segment <em>Space</em></p>
+      <p class="panel-sub">Each point is a customer from the dataset. Color marks the cluster a K-Means model assigned them to. Drag to rotate, scroll to zoom — the customer you place appears as a black diamond.</p>
+
+      <div class="plot-frame">
+        {{ plot_html|safe }}
+      </div>
+
+      <div class="axis-key">
+        <div class="axis-key-item"><b>X</b> &nbsp;Age</div>
+        <div class="axis-key-item"><b>Y</b> &nbsp;Annual Income</div>
+        <div class="axis-key-item"><b>Z</b> &nbsp;Spending Score</div>
+      </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="control-panel">
+      <p class="control-title">Place a <em>Customer</em></p>
+
+      <form method="post" action="/Customer_Segmentation">
+
+        <div class="field-block">
+          <div class="field-label"><span style="color:var(--muted)">01&nbsp;</span>Age</div>
+          <div class="range-wrap">
+            <span class="range-value" id="ageDisplay">{{ age }}</span>
+            <input id="age" name="age" type="range" min="18" max="70" value="{{ age }}" step="1" oninput="document.getElementById('ageDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">Years old</p>
+        </div>
+
+        <div class="field-block">
+          <div class="field-label"><span style="color:var(--muted)">02&nbsp;</span>Annual Income</div>
+          <div class="range-wrap">
+            <span class="range-value" id="incomeDisplay">{{ income }}</span>
+            <input id="income" name="income" type="range" min="15" max="140" value="{{ income }}" step="1" oninput="document.getElementById('incomeDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">In thousand $ / year</p>
+        </div>
+
+        <div class="field-block">
+          <div class="field-label"><span style="color:var(--muted)">03&nbsp;</span>Spending Score</div>
+          <div class="range-wrap">
+            <span class="range-value" id="spendDisplay">{{ spend }}</span>
+            <input id="spend" name="spend" type="range" min="1" max="100" value="{{ spend }}" step="1" oninput="document.getElementById('spendDisplay').textContent=this.value">
+          </div>
+          <p class="field-hint">Mall-assigned score, 1–100</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="readout">
+          <div class="readout-label">Predicted Segment</div>
+          <div class="readout-seg">
+            {% if predicted_cluster is not none %}
+              Cluster {{ predicted_cluster }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+          <div class="readout-desc">
+            {% if predicted_cluster is not none %}
+              This customer is closest to the centroid of cluster {{ predicted_cluster }}, and is marked as a black diamond on the plot.
+            {% else %}
+              Adjust the sliders, then plot the customer to see their predicted segment.
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-plot" type="submit"><span>Plot Customer</span></button>
+          <a href="/" class="btn-reset">Reset</a>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <p>© 2026 Aditya</p>
+    <p>Customer Segmentation ML</p>
+  </footer>
+
+  <script>
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+    });
+    (function loop() {
+      rx += (mx - rx) * 0.1; ry += (my - ry) * 0.1;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.classList.add('big'); ring.classList.add('big'); });
+      el.addEventListener('mouseleave', () => { cursor.classList.remove('big'); ring.classList.remove('big'); });
+    });
+  </script>
+
+</body>
+</html>

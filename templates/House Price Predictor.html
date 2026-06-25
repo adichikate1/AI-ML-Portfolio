@@ -612,7 +612,7 @@
     </div>
   </section>
 
-  <form class="main-layout" method="post" action="/House_Price_Predictor">
+  <form class="main-layout" method="post" action="/house_price_predictor">
     <div class="form-panel">
       <p class="panel-title">Enter <em>House Details</em></p>
 
@@ -766,7 +766,7 @@
 
         <div class="stat-row">
           <span class="stat-key">Model</span>
-          <span class="stat-val">Linear Regression</span>
+          <span class="stat-val">XGBoost Regressor</span>
         </div>
         <div class="stat-row">
           <span class="stat-key">Dataset</span>
@@ -778,16 +778,21 @@
         </div>
 
         <div class="conf-wrap">
+
           <div class="conf-header">
-            <span>Model Confidence</span>
-            <span>~80%</span>
+              <span>Model Accuracy</span>
+              <span>{{ confidence }}%</span>
           </div>
+
           <div class="conf-track">
-            <div class="conf-fill"></div>
+              <div class="conf-fill" style="width: {{ confidence }}%;"></div>
           </div>
+
         </div>
 
-        <p class="range-note">Accuracy range · ±12%</p>
+        <p class="range-note">
+            Expected Error · ±{{ accuracy_range }}%
+        </p>
       </div>
 
     </div>
