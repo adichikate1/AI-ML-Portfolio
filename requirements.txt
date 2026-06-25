@@ -1,4 +1,8 @@
 flask
-numpy
+scikit-learn
+plotly
+openpyxl
+catboost
+xgboost
 pandas
 gunicorn
