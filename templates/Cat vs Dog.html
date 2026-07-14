@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cat vs Dog Classifier · Aditya</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --white: #fafaf8;
+      --muted: rgba(10, 10, 10, 0.45);
+      --border: rgba(10, 10, 10, 0.12);
+      --border-strong: rgba(10, 10, 10, 0.22);
+      --hover-bg: rgba(10, 10, 10, 0.03);
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--white);
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      cursor: none;
+    }
+
+    * {
+      cursor: none !important;
+    }
+
+    .cursor {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      background: var(--black);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      transition: width .18s ease, height .18s ease;
+    }
+
+    .cursor-ring {
+      position: fixed;
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(10, 10, 10, 0.4);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99998;
+      transform: translate(-50%, -50%);
+      transition: width .28s cubic-bezier(.25, .46, .45, .94), height .28s cubic-bezier(.25, .46, .45, .94);
+    }
+
+    .cursor.big {
+      width: 16px;
+      height: 16px;
+    }
+
+    .cursor-ring.big {
+      width: 52px;
+      height: 52px;
+    }
+
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--serif);
+      font-size: 18px;
+      color: var(--black);
+      text-decoration: none;
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--black);
+      opacity: 0.6;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .nav-back:hover {
+      opacity: 1;
+    }
+
+    .arr {
+      display: inline-block;
+      transition: transform 0.25s ease;
+    }
+
+    .nav-back:hover .arr {
+      transform: translateX(-4px);
+    }
+
+    .hero {
+      border-bottom: 1px solid var(--border);
+      padding: 70px 60px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 100% at 90% 50%, black 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(54px, 8vw, 96px);
+      font-weight: 400;
+      line-height: 1.0;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--black);
+      opacity: 0.7;
+      max-width: 480px;
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      padding: 14px 28px 14px 0;
+      margin-right: 28px;
+      border-right: 1px solid var(--border);
+    }
+
+    .meta-item:last-child {
+      border-right: none;
+    }
+
+    .meta-item .label {
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .meta-item .value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      min-height: calc(100vh - 60px);
+    }
+
+    .form-panel {
+      border-right: 1px solid var(--border);
+      padding: 60px 8%;
+    }
+
+    .panel-title {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+      margin-bottom: 32px;
+      line-height: 1.2;
+    }
+
+    .panel-title em {
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    /* UPLOAD ZONE */
+    .upload-wrap {
+      border: 1px solid var(--border);
+    }
+
+    .dropzone {
+      position: relative;
+      border: 1px dashed var(--border-strong);
+      margin: 20px;
+      padding: 60px 24px;
+      text-align: center;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .dropzone.drag-over {
+      background: var(--hover-bg);
+      border-color: var(--black);
+    }
+
+    .dropzone.has-image {
+      padding: 0;
+      border-style: solid;
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dz-icon {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 34px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .dz-text {
+      font-size: 13px;
+      color: var(--black);
+      opacity: 0.7;
+      margin-bottom: 6px;
+    }
+
+    .dz-hint {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .preview-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: var(--black);
+    }
+
+    .preview-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-remove {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+      background: rgba(10, 10, 10, 0.7);
+      color: var(--white);
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .file-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .file-meta-row .s-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .file-meta-row .s-value {
+      font-size: 13px;
+      color: var(--black);
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .field-hint {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .submit-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 32px 0 0;
+      flex-wrap: wrap;
+    }
+
+    .btn-predict {
+      padding: 12px 36px;
+      font-family: var(--sans);
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      background: var(--black);
+      color: var(--white);
+      border: 1px solid var(--black);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s ease, opacity 0.2s ease;
+    }
+
+    .btn-predict:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-predict::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--white);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .btn-predict span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-predict:not(:disabled):hover {
+      color: var(--black);
+    }
+
+    .btn-predict:not(:disabled):hover::before {
+      transform: scaleX(1);
+    }
+
+    .btn-reset {
+      padding: 12px 24px;
+      font-family: var(--sans);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .btn-reset:hover {
+      color: var(--black);
+    }
+
+    /* RESULT PANEL */
+    .result-panel {
+      padding: 60px 36px;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .result-idle {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 16px;
+    }
+
+    .ship-icon {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 56px;
+      color: var(--black);
+      opacity: 0.08;
+      line-height: 1.1;
+    }
+
+    .idle-text {
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.6;
+      line-height: 2;
+    }
+
+    .result-card {
+      display: none;
+    }
+
+    .result-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .result-eyebrow::before {
+      content: '';
+      width: 20px;
+      height: 1px;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .result-thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      margin-bottom: 28px;
+      background: var(--black);
+    }
+
+    .result-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .verdict {
+      font-family: var(--serif);
+      font-size: clamp(38px, 5vw, 52px);
+      font-weight: 400;
+      line-height: 1.0;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .verdict-sub {
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 36px;
+    }
+
+    .prob-section {
+      margin-bottom: 20px;
+    }
+
+    .prob-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .prob-num {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--black);
+    }
+
+    .prob-bar-track {
+      height: 1.5px;
+      background: var(--border);
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      background: var(--black);
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .result-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border);
+      border-left: 1px solid var(--border);
+    }
+
+    .stat-cell {
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+
+    .s-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .s-value {
+      font-size: 14px;
+      color: var(--black);
+    }
+
+    .footer {
+      background: var(--black);
+      padding: 22px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer p {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: white;
+      opacity: 0.4;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 960px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .form-panel {
+        border-right: none;
+        padding: 40px 24px;
+      }
+
+      .result-panel {
+        position: static;
+        height: auto;
+        border-top: 1px solid var(--border);
+        padding: 40px 24px;
+      }
+
+      .result-idle {
+        padding: 40px 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .navbar {
+        padding: 0 20px;
+      }
+
+      .hero {
+        padding: 48px 24px 40px;
+      }
+
+      .form-panel {
+        padding: 32px 20px;
+      }
+
+      .footer {
+        padding: 18px 20px;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .result-panel {
+        padding: 32px 20px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .hero h1 {
+        font-size: 44px;
+      }
+
+      .btn-predict {
+        width: 100%;
+      }
+
+      .btn-reset {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/">Aditya</a>
+    <a class="nav-back" href="/"><span class="arr">&#8592;</span> Back to Projects</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">ML Project · Image Classifier</div>
+    <h1>Cat vs<br><em>Dog</em></h1>
+    <p class="hero-desc">A convolutional neural network trained to tell cats and dogs apart from a single photo.
+      Upload an image and the model will classify it with a confidence score.</p>
+    <div class="hero-meta">
+      <div class="meta-item">
+        <p class="label">Model</p>
+        <p class="value">CNN (Keras)</p>
+      </div>
+      <div class="meta-item">
+        <p class="label">Dataset</p>
+        <p class="value">Dogs vs Cats</p>
+      </div>
+      <div class="meta-item">
+        <p class="label">Accuracy</p>
+        <p class="value">~95%</p>
+      </div>
+      <div class="meta-item">
+        <p class="label">Input</p>
+        <p class="value">01 Image</p>
+      </div>
+    </div>
+  </section>
+
+  <form class="main-layout" method="post" action="/cat_vs_dog" enctype="multipart/form-data" id="predictForm">
+
+    <input type="hidden" id="predictedFlag" value="{% if predicted_class is not none %}{{ predicted_class }}{% endif %}">
+
+    <div class="form-panel">
+      <p class="panel-title">Upload a <em>Photo</em></p>
+
+      <div class="upload-wrap">
+        <div class="dropzone" id="dropzone">
+          <input type="file" name="photo" id="photoInput" accept="image/*" required>
+          <div id="dzEmpty">
+            <div class="dz-icon">Cat / Dog</div>
+            <p class="dz-text">Drag & drop an image, or click to browse</p>
+            <p class="dz-hint">JPG · PNG · up to 10MB</p>
+          </div>
+          <div class="preview-frame" id="previewFrame" style="display:none;">
+            <button type="button" class="preview-remove" id="removeBtn">&times;</button>
+            <img id="previewImg" src="" alt="Preview">
+          </div>
+        </div>
+        <div class="file-meta-row" id="fileMetaRow" style="display:none;">
+          <div>
+            <p class="s-label">File</p>
+            <p class="s-value" id="fileNameText">—</p>
+          </div>
+          <div>
+            <p class="s-label">Size</p>
+            <p class="s-value" id="fileSizeText">—</p>
+          </div>
+        </div>
+      </div>
+      <p class="field-hint">The image is passed to the CNN at 128×128 resolution for inference.</p>
+
+      <div class="submit-row">
+        <button class="btn-predict" type="submit" id="predictBtn" disabled><span>Classify Image</span></button>
+        <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+      </div>
+
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="result-panel">
+
+      <div class="result-idle" id="resultIdle">
+        <div class="ship-icon">CNN</div>
+        <p class="idle-text">Upload a photo<br>and press Classify Image</p>
+      </div>
+
+      <div class="result-card" id="resultCard">
+        <div class="result-eyebrow">Prediction Result</div>
+
+        {% if image_path %}
+        <div class="result-thumb">
+          <img src="{{ image_path }}" alt="Uploaded photo">
+        </div>
+        {% endif %}
+
+        <div class="verdict" id="verdictText">
+          {% if predicted_class == 'dog' %}It's a<br>Dog{% elif predicted_class == 'cat' %}It's a<br>Cat{% endif %}
+        </div>
+        <div class="verdict-sub">
+          {% if predicted_class %}Predicted by the CNN{% endif %}
+        </div>
+
+        <div class="prob-section">
+          <div class="prob-label">
+            <span>Confidence</span>
+            <span class="prob-num">{% if confidence is not none %}{{ confidence }}%{% else %}0%{% endif %}</span>
+          </div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill" id="probBar"
+              style="width: {% if confidence is not none %}{{ confidence }}{% else %}0{% endif %}%">
+            </div>
+          </div>
+        </div>
+
+        <div class="result-divider"></div>
+
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <p class="s-label">Predicted Class</p>
+            <p class="s-value">{% if predicted_class %}{{ predicted_class|capitalize }}{% else %}—{% endif %}</p>
+          </div>
+
+          <div class="stat-cell">
+            <p class="s-label">Confidence</p>
+            <p class="s-value">{% if confidence is not none %}{{ confidence }}%{% else %}—{% endif %}</p>
+          </div>
+
+          <div class="stat-cell">
+            <p class="s-label">Cat Probability</p>
+            <p class="s-value">{% if cat_probability is not none %}{{ cat_probability }}%{% else %}—{% endif %}</p>
+          </div>
+
+          <div class="stat-cell">
+            <p class="s-label">Dog Probability</p>
+            <p class="s-value">{% if dog_probability is not none %}{{ dog_probability }}%{% else %}—{% endif %}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <footer class="footer">
+    <p>© 2026 Aditya</p>
+    <p>Cat vs Dog CNN Classifier</p>
+  </footer>
+
+  <script>
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+    });
+    (function loop() {
+      rx += (mx - rx) * 0.1; ry += (my - ry) * 0.1;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, button, .card, .skills span').forEach(el => {
+      el.addEventListener('mouseenter', () => { cursor.classList.add('big'); ring.classList.add('big'); });
+      el.addEventListener('mouseleave', () => { cursor.classList.remove('big'); ring.classList.remove('big'); });
+    });
+
+    const dropzone = document.getElementById('dropzone');
+    const photoInput = document.getElementById('photoInput');
+    const dzEmpty = document.getElementById('dzEmpty');
+    const previewFrame = document.getElementById('previewFrame');
+    const previewImg = document.getElementById('previewImg');
+    const fileMetaRow = document.getElementById('fileMetaRow');
+    const fileNameText = document.getElementById('fileNameText');
+    const fileSizeText = document.getElementById('fileSizeText');
+    const predictBtn = document.getElementById('predictBtn');
+    const removeBtn = document.getElementById('removeBtn');
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function showFile(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewImg.src = e.target.result;
+        dzEmpty.style.display = 'none';
+        previewFrame.style.display = 'block';
+        dropzone.classList.add('has-image');
+        fileMetaRow.style.display = 'flex';
+        fileNameText.textContent = file.name;
+        fileSizeText.textContent = formatSize(file.size);
+        predictBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    photoInput.addEventListener('change', function () {
+      if (this.files && this.files[0]) showFile(this.files[0]);
+    });
+
+    dropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', function () {
+      dropzone.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files && files[0]) {
+        photoInput.files = files;
+        showFile(files[0]);
+      }
+    });
+
+    removeBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      resetForm();
+    });
+
+    function resetForm() {
+      photoInput.value = '';
+      previewImg.src = '';
+      dzEmpty.style.display = 'block';
+      previewFrame.style.display = 'none';
+      dropzone.classList.remove('has-image');
+      fileMetaRow.style.display = 'none';
+      predictBtn.disabled = true;
+      document.getElementById("resultCard").style.display = "none";
+      document.getElementById("resultIdle").style.display = "flex";
+    }
+
+    const predictedFlag = document.getElementById('predictedFlag').value;
+    if (predictedFlag !== '') {
+      document.getElementById('resultCard').style.display = 'block';
+      document.getElementById('resultIdle').style.display = 'none';
+    } else {
+      document.getElementById('resultCard').style.display = 'none';
+    }
+  </script>
+
+</body>
+
+</html>

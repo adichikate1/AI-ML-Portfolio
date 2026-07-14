@@ -1,0 +1,13 @@
+flask
+scikit-learn
+plotly
+openpyxl
+catboost
+xgboost
+pandas
+tensorflow
+keras
+joblib
+PIL
+numpy
+gunicorn
