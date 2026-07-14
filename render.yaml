@@ -1,5 +1,0 @@
-services:
-  - type: web
-    name: ai-ml-portfolio
-    runtime: python
-    pythonVersion: "3.12.13"
