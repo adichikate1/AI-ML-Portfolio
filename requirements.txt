@@ -8,6 +8,5 @@ pandas
 tensorflow
 keras
 joblib
-PIL
 numpy
 gunicorn
